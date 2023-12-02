@@ -1,8 +1,8 @@
 import polars as pl
 
 
-df = pl.read_csv('1.txt', has_header=False, new_columns=['input_text'])
-print(df.select(
+df = pl.scan_csv("1.txt", has_header=False, new_columns=["input_text"])
+result = df.select(
     pl.col("input_text")
     # Extract all digits
     .str.extract_all(r"(\d)")
@@ -14,4 +14,5 @@ print(df.select(
     # We now have a single-element list, so take the first (and only) element
     .list.first()
     .sum()
-))
+)
+print(result.collect())
