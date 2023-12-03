@@ -5,19 +5,13 @@
 
 ## Notes
 
-Trying to do advent of code with Polars
-
-Did day 1 and day 2
-
-Day 3, I did in pure Python, but couldn't figure out how to do it purely in Polars
-without `map_elements` or iterating over rows in Python.
-
-Curious to see how far Polars can take us in advent of code.
+Trying to do advent of code with Polars, curious to see how far it can go.
 
 PRs to improve solutions (or add pure Polars solutions I missed) are very welcome.
 
 ---
 
-Plugin:
-- aoc: python module
-- src: rust code
+To run:
+- `make venv`
+- `make install-release` (or just `make install` if you don't intend to time solutions)
+- `python part_3_1.py` (or whichever other part you want to run)
