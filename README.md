@@ -15,3 +15,9 @@ without `map_elements` or iterating over rows in Python.
 Curious to see how far Polars can take us in advent of code.
 
 PRs to improve solutions (or add pure Polars solutions I missed) are very welcome.
+
+---
+
+Plugin:
+- aoc: python module
+- src: rust code
