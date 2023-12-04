@@ -32,6 +32,42 @@ fn find_numbers(line: &str) -> Vec<(i64, (i64, i64))> {
     nums
 }
 
+fn calculate_gear_ratio(
+    curr: &str,
+    prev: Option<&str>,
+    next: Option<&str>,
+    nums: &mut Vec<(i64, (i64, i64))>,
+) -> i64{
+    let res = curr.chars().enumerate().fold(0, |acc, (i, c)| {
+        if c == '*' {
+            //let mut nums = vec![];
+            // find all numbers on this and neighbouring lines
+            if let Some(prev) = prev {
+                nums.extend(find_numbers(prev));
+            }
+            nums.extend(find_numbers(curr));
+            if let Some(next) = next {
+                nums.extend(find_numbers(next));
+            }
+            // only keep neighbouring numbers
+            nums
+                .retain(|(_n, (start, end))| start - 1 <= (i as i64) && end + 1 >= (i as i64));
+            // if there's only two neighbouring numbers, multiply them
+            let acc = if nums.len() == 2 {
+                acc + nums.first().unwrap().0 * nums.get(1).unwrap().0
+            } else {
+                acc
+            };
+            nums.clear();
+            acc
+        } else {
+            nums.clear();
+            acc
+        }
+    });
+    res
+}
+
 #[polars_expr(output_type=Int64)]
 fn day_3(inputs: &[Series]) -> PolarsResult<Series> {
     let ca = inputs[0].utf8()?;
@@ -39,37 +75,10 @@ fn day_3(inputs: &[Series]) -> PolarsResult<Series> {
     let next = binding.utf8()?;
     let binding = inputs[0].shift(-1);
     let previous = binding.utf8()?;
+    let mut nums: Vec<(i64, (i64, i64))> = vec![];
 
     let out: Int64Chunked = try_ternary_elementwise(ca, previous, next, |curr, prev, next| {
-        let curr = curr.unwrap();
-
-        let res = curr.chars().enumerate().fold(0, |acc, (i, c)| {
-            if c == '*' {
-                // find all numbers on this and neighbouring lines
-                let mut nums: Vec<(i64, (i64, i64))> = vec![];
-                if let Some(prev) = prev {
-                    nums.extend(find_numbers(prev));
-                }
-                nums.extend(find_numbers(curr));
-                if let Some(next) = next {
-                    nums.extend(find_numbers(next));
-                }
-                // only keep neighbouring numbers
-                let nums: Vec<(i64, (i64, i64))> = nums
-                    .into_iter()
-                    .filter(|(_n, (start, end))| start - 1 <= (i as i64) && end + 1 >= (i as i64))
-                    .collect();
-                // if there's only two neighbouring numbers, multiply them
-                if nums.len() == 2 {
-                    acc + nums.first().unwrap().0 * nums.get(1).unwrap().0
-                } else {
-                    acc
-                }
-            } else {
-                acc
-            }
-        });
-
+        let res = calculate_gear_ratio(curr.unwrap(), prev, next, &mut nums);
         Ok::<Option<i64>, PolarsError>(Some(res))
     })?;
 
