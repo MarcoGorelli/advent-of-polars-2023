@@ -1,4 +1,4 @@
-use polars::prelude::arity::try_ternary_elementwise;
+use polars::prelude::arity::ternary_elementwise;
 use polars::prelude::*;
 use pyo3_polars::derive::polars_expr;
 
@@ -31,11 +31,12 @@ fn find_numbers(line: &str, nums: &mut Vec<(i64, (i64, i64))>) {
 }
 
 fn calculate_gear_ratio(
-    curr: &str,
+    curr: Option<&str>,
     prev: Option<&str>,
     next: Option<&str>,
     nums: &mut Vec<(i64, (i64, i64))>,
 ) -> i64 {
+    let curr = curr.unwrap();
     let res = curr.chars().enumerate().fold(0, |acc, (i, c)| {
         let acc = if c == '*' {
             // find all numbers on this and neighbouring lines
@@ -72,10 +73,14 @@ fn day_3(inputs: &[Series]) -> PolarsResult<Series> {
     let previous = binding.utf8()?;
     let mut nums: Vec<(i64, (i64, i64))> = vec![];
 
-    let out: Int64Chunked = try_ternary_elementwise(ca, previous, next, |curr, prev, next| {
-        let res = calculate_gear_ratio(curr.unwrap(), prev, next, &mut nums);
-        Ok::<Option<i64>, PolarsError>(Some(res))
-    })?;
+    let out: Int64Chunked = ternary_elementwise(
+        ca,
+        previous,
+        next,
+        |curr: Option<&str>, prev: Option<&str>, next: Option<&str>| {
+            calculate_gear_ratio(curr, prev, next, &mut nums)
+        },
+    );
 
     Ok(out.into_series())
 }
