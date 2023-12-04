@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import polars as pl
 
 numbers_in_eng = [
@@ -18,8 +16,8 @@ number_map = dict(zip(numbers_in_eng, map(str, range(10))))
 total_map = number_map | {k[::-1]: v for k, v in number_map.items()}
 
 
-def tweak_df(df):
-    return df.with_columns(
+def solve(df: pl.LazyFrame) -> pl.LazyFrame:
+    df = df.with_columns(
         first_digit=pl.col("column_1")
         .str.extract(r"(\d|zero|one|two|three|four|five|six|seven|eight|nine)")
         .replace(total_map),
@@ -29,7 +27,8 @@ def tweak_df(df):
         .list.join("")
         .str.extract(r"(\d|orez|eno|owt|eerht|ruof|evif|xis|neves|thgie|enin)")
         .replace(total_map),
-    ).select(
+    )
+    return df.select(
         result=pl.col("first_digit")
         .cast(pl.Int64)
         .mul(10)
@@ -37,8 +36,7 @@ def tweak_df(df):
     )
 
 
-file_path = Path(__file__).parent.parent / "data/input.txt"
-raw_df = pl.read_csv(file_path, has_header=False)
-df = tweak_df(raw_df)
-result = df.sum()
+raw_df = pl.scan_csv('1.txt', has_header=False)
+df = solve(raw_df)
+result = df.sum().collect()
 print(f"{result=}")
