@@ -1,45 +1,42 @@
 import polars as pl
 
-df = pl.read_csv('1.txt', has_header=False, new_columns=['input_text'])
+numbers_in_eng = [
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+]
+number_map = dict(zip(numbers_in_eng, map(str, range(10))))
+total_map = number_map | {k[::-1]: v for k, v in number_map.items()}
 
-result = df.with_columns(
-    t=pl.concat_list(
-        pl.col("input_text")
-        .str.replace_all(r'(one|two|three|four|five|six|seven|eight|nine)', '*$1*')
-        .str.replace_all('\*(one)\*', '1')
-        .str.replace_all('\*(two)\*', '2')
-        .str.replace_all('\*(three)\*', '3')
-        .str.replace_all('\*(four)\*', '4')
-        .str.replace_all('\*(five)\*', '5')
-        .str.replace_all('\*(six)\*', '6')
-        .str.replace_all('\*(seven)\*', '7')
-        .str.replace_all('\*(eight)\*', '8')
-        .str.replace_all('\*(nine)\*', '9')
-        # Extract first digit
-        .str.extract(r"(\d)")
-        .cast(pl.Int64),
-        pl.col("input_text")
-        # Reverse the string
-        .str.split('').list.reverse().list.join('')
-        .str.replace_all(r'(eno|owt|eerht|ruof|evif|xis|neves|thgie|enin)', '*$1*')
-        .str.replace_all('\*(eno)\*', '1')
-        .str.replace_all('\*(owt)\*', '2')
-        .str.replace_all('\*(eerht)\*', '3')
-        .str.replace_all('\*(ruof)\*', '4')
-        .str.replace_all('\*(evif)\*', '5')
-        .str.replace_all('\*(xis)\*', '6')
-        .str.replace_all('\*(neves)\*', '7')
-        .str.replace_all('\*(thgie)\*', '8')
-        .str.replace_all('\*(enin)\*', '9')
-        # Extract first digit
-        .str.extract(r"(\d)")
-        .cast(pl.Int64)
+
+def solve(df: pl.LazyFrame) -> pl.LazyFrame:
+    df = df.with_columns(
+        first_digit=pl.col("column_1")
+        .str.extract(r"(\d|zero|one|two|three|four|five|six|seven|eight|nine)")
+        .replace(total_map),
+        last_digit=pl.col("column_1")
+        .str.split("")
+        .list.reverse()
+        .list.join("")
+        .str.extract(r"(\d|orez|eno|owt|eerht|ruof|evif|xis|neves|thgie|enin)")
+        .replace(total_map),
     )
-    # Combine the digits into a 2-digit number
-    .list.eval(pl.element().get(0) * 10 + pl.element().get(1))
-    # We now have a single-element list, so take the first (and only) element
-    .list.first()
-)
-print(result)
-print(result.select('t').sum())
+    return df.select(
+        result=pl.col("first_digit")
+        .cast(pl.Int64)
+        .mul(10)
+        .add(pl.col("last_digit").cast(pl.Int64))
+    )
 
+
+raw_df = pl.scan_csv('1.txt', has_header=False)
+df = solve(raw_df)
+result = df.sum().collect()
+print(f"{result=}")
